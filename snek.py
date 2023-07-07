@@ -3,13 +3,12 @@ import time
 import random
 
 # Set up some constants
-WIDTH = 600
-HEIGHT = 600
 SNAKE_SIZE = 20
 SNAKE_SPEED = 15
-WIDTH = 600 // SNAKE_SIZE * SNAKE_SIZE  # This ensures that WIDTH is a multiple of SNAKE_SIZE
-HEIGHT = 600 // SNAKE_SIZE * SNAKE_SIZE  # This ensures that HEIGHT is a multiple of SNAKE_SIZE
-
+RESOLUTION = 600
+WIDTH = RESOLUTION // SNAKE_SIZE * SNAKE_SIZE  # This ensures that WIDTH is a multiple of SNAKE_SIZE
+HEIGHT = RESOLUTION // SNAKE_SIZE * SNAKE_SIZE  # This ensures that HEIGHT is a multiple of SNAKE_SIZE
+FONT_SIZE = 36
 
 # Colors
 GRAY = (34, 34, 34)
@@ -25,7 +24,7 @@ WINDOW = pygame.display.set_mode((WIDTH, HEIGHT))
 pygame.display.set_caption('Snake Game')  # Add a title to the window
 
 # Load a font
-font = pygame.font.Font(None, 36)
+FONT = pygame.font.Font(None, FONT_SIZE)
 
 def draw_snake(snake):
     for unit in snake:
@@ -45,9 +44,10 @@ def draw_fruit(fruit):
     pygame.draw.rect(WINDOW, RED, pygame.Rect(fruit[0], fruit[1], SNAKE_SIZE, SNAKE_SIZE))
 
 def check_collision(snake, fruit):
-    if snake[0] == fruit:
-        return True 
-    return False
+    # Check if the head of the snake is within the fruit rectangle
+    head_rect = pygame.Rect(snake[0][0], snake[0][1], SNAKE_SIZE, SNAKE_SIZE)
+    fruit_rect = pygame.Rect(fruit[0], fruit[1], SNAKE_SIZE, SNAKE_SIZE)
+    return head_rect.colliderect(fruit_rect)
 
 def check_game_over(snake):
     # Check if snake is out of bounds
@@ -62,17 +62,13 @@ def check_game_over(snake):
     return False
 
 def generate_fruit(snake):
-    global fruit
-    while True:
-        fruit = [random.randrange(0, WIDTH//SNAKE_SIZE) * SNAKE_SIZE, 
-                 random.randrange(0, HEIGHT//SNAKE_SIZE) * SNAKE_SIZE]
-        if fruit not in snake:
-            return fruit
-
+    all_positions = [[x, y] for x in range(0, WIDTH, SNAKE_SIZE) for y in range(0, HEIGHT, SNAKE_SIZE)]
+    free_positions = [pos for pos in all_positions if pos not in snake]
+    return random.choice(free_positions)
 
 def game_over_screen():
     WINDOW.fill(GRAY)
-    text = font.render('Game Over. Press any key to play again.', True, WHITE)
+    text = FONT.render('Game Over. Press any key to play again.', True, WHITE)
     text_rect = text.get_rect(center=(WIDTH // 2, HEIGHT // 2))
     WINDOW.blit(text, text_rect)
     pygame.display.update()
@@ -86,23 +82,11 @@ def game_over_screen():
             if event.type == pygame.KEYDOWN:
                 game_loop()
 
-def move_snake(snake, direction):
-    if direction == 'RIGHT':
-        snake.insert(0, [snake[0][0] + SNAKE_SIZE, snake[0][1]])
-    elif direction == 'LEFT':
-        snake.insert(0, [snake[0][0] - SNAKE_SIZE, snake[0][1]])
-    elif direction == 'UP':
-        snake.insert(0, [snake[0][0], snake[0][1] - SNAKE_SIZE])
-    elif direction == 'DOWN':
-        snake.insert(0, [snake[0][0], snake[0][1] + SNAKE_SIZE])
-
 def game_loop():
-    global fruit
     # Set up the initial game state
     snake = [[100, 50], [90, 50], [80, 50]]
     direction = 'RIGHT'
-    fruit = [random.randrange(0, WIDTH//SNAKE_SIZE) * SNAKE_SIZE, 
-             random.randrange(0, HEIGHT//SNAKE_SIZE) * SNAKE_SIZE]
+    fruit = generate_fruit(snake)
     
     clock = pygame.time.Clock()
     game_started = False
@@ -127,36 +111,33 @@ def game_loop():
         direction = new_direction
 
         if game_started:
-            # Predict the next position of the snake's head
-            if direction == 'RIGHT':
-                new_head = [snake[0][0] + SNAKE_SIZE, snake[0][1]]
-            elif direction == 'LEFT':
-                new_head = [snake[0][0] - SNAKE_SIZE, snake[0][1]]
-            elif direction == 'UP':
-                new_head = [snake[0][0], snake[0][1] - SNAKE_SIZE]
-            elif direction == 'DOWN':
-                new_head = [snake[0][0], snake[0][1] + SNAKE_SIZE]
+            # Move the snake according to the direction
+            move_snake(snake, direction)
 
-            snake.insert(0, new_head)  # Add new head to the snake
-
-            if new_head != fruit:  # If the snake didn't eat the fruit, remove the last segment
-                snake.pop() 
+            # Check if the snake has eaten the fruit
+            if check_collision(snake, fruit):
+                # Generate new fruit and don't remove the tail of the snake, so it grows
+                fruit = generate_fruit(snake)
             else:
-                fruit = generate_fruit(snake)  # If the snake did eat the fruit, generate new fruit
-
+                # If the snake didn't eat the fruit, move as normal by removing the last segment
+                snake.pop()
+                
+            # Check for game over
             if check_game_over(snake):
                 game_over_screen()
                 return
 
+            # Draw everything
             WINDOW.fill(GRAY)
             draw_snake(snake)
-            draw_fruit(fruit)  # Draw the fruit after checking for collisions
+            draw_fruit(fruit)
             pygame.display.update()
             clock.tick(SNAKE_SPEED)
         else:
             # Wait for an arrow key or WASD key to start the game
             if keys[pygame.K_UP] or keys[pygame.K_DOWN] or keys[pygame.K_LEFT] or keys[pygame.K_RIGHT] or keys[pygame.K_w] or keys[pygame.K_s] or keys[pygame.K_a] or keys[pygame.K_d]:
                 game_started = True
+
 
 
 if __name__ == "__main__":
