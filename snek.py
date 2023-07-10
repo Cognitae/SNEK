@@ -221,7 +221,7 @@ def game_loop():
                 if fruit.type == 'GOLDEN':
                     score += 100
                 elif fruit.type == 'SPECIAL':
-                    score += 3
+                    score += 5
                 else:  # 'NORMAL'
                     score += 1
                 # Generate new fruit and don't remove the tail of the snake, so it grows
