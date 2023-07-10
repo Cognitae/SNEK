@@ -83,6 +83,8 @@ def game_over_screen():
                 game_loop()
 
 def game_loop():
+     # Initialize the score
+    score = 0
     # Set up the initial game state
     snake = [[100, 50], [90, 50], [80, 50]]
     direction = 'RIGHT'
